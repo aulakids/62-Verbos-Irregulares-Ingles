@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcards & Práctica | Aula Kids</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Configuración de colores personalizados y Modo Oscuro -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class', 
+      theme: {
+        extend: {
+          colors: {
+            aulaBlue: '#009fe3',   
+            aulaGreen: '#8cc63f',  
+            aulaOrange: '#f7931e', 
+            darkBg: '#0f172a',     
+            darkCard: '#1e293b',   
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel (JSX) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Fuente Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .preserve-3d { transform-style: preserve-3d; }
+    .backface-hidden { backface-visibility: hidden; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+    
+    .brand-gradient {
+      background: linear-gradient(90deg, #009fe3 0%, #8cc63f 50%, #f7931e 100%);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-darkBg dark:text-slate-100 transition-colors duration-300 selection:bg-aulaBlue selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- CONSTANTES GLOBALES ---
+    const LOGO_SRC = "logoAulakids.jpg";
+
+    const VERBS_MEMORIZAR = [
+      { p: "say", past: "said", pp: "said", meaning: "dir", emoji: "🗣️" },
+      { p: "see", past: "saw", pp: "seen", meaning: "veure", emoji: "👁️" },
+      { p: "sell", past: "sold", pp: "sold", meaning: "vendre", emoji: "💰" },
+      { p: "send", past: "sent", pp: "sent", meaning: "enviar", emoji: "📤" },
+      { p: "shine", past: "shone", pp: "shone", meaning: "brillar", emoji: "✨" },
+      { p: "sing", past: "sang", pp: "sung", meaning: "cantar", emoji: "🎤" },
+      { p: "sit", past: "sat", pp: "sat", meaning: "seure", emoji: "🪑" },
+      { p: "sleep", past: "slept", pp: "slept", meaning: "dormir", emoji: "😴" },
+      { p: "speak", past: "spoke", pp: "spoken", meaning: "parlar", emoji: "💬" },
+      { p: "spend", past: "spent", pp: "spent", meaning: "gastar", emoji: "💸" },
+      { p: "steal", past: "stole", pp: "stolen", meaning: "robar", emoji: "🥷" },
+      { p: "swim", past: "swam", pp: "swum", meaning: "nadar", emoji: "🏊" },
+      { p: "take", past: "took", pp: "taken", meaning: "agafar", emoji: "🎒" },
+      { p: "teach", past: "taught", pp: "taught", meaning: "ensenyar", emoji: "👩‍🏫" },
+      { p: "tell", past: "told", pp: "told", meaning: "dir / contar", emoji: "📖" },
+      { p: "think", past: "thought", pp: "thought", meaning: "pensar", emoji: "💭" },
+      { p: "throw", past: "threw", pp: "thrown", meaning: "llançar", emoji: "⚾" },
+      { p: "understand", past: "understood", pp: "understood", meaning: "entendre", emoji: "💡" },
+      { p: "wear", past: "wore", pp: "worn", meaning: "portar posat / vestir", emoji: "👕" },
+      { p: "win", past: "won", pp: "won", meaning: "guanyar", emoji: "🏆" },
+      { p: "write", past: "wrote", pp: "written", meaning: "escriure", emoji: "✍️" },
+    ];
+
+    const VERBS_REPASO = [
+      { p: "be", past: "was, were", pp: "been", meaning: "ser/estar", emoji: "🌟" },
+      { p: "become", past: "became", pp: "become", meaning: "convertir-se en", emoji: "✨" },
+      { p: "begin", past: "began", pp: "begun", meaning: "començar", emoji: "▶️" },
+      { p: "blow", past: "blew", pp: "blown", meaning: "bufar", emoji: "🌬️" },
+      { p: "break", past: "broke", pp: "broken", meaning: "trencar", emoji: "💔" },
+      { p: "bring", past: "brought", pp: "brought", meaning: "portar", emoji: "🎁" },
+      { p: "build", past: "built", pp: "built", meaning: "construir", emoji: "🏗️" },
+      { p: "buy", past: "bought", pp: "bought", meaning: "comprar", emoji: "🛒" },
+      { p: "catch", past: "caught", pp: "caught", meaning: "agafar", emoji: "🎣" },
+      { p: "choose", past: "chose", pp: "chosen", meaning: "triar", emoji: "👆" },
+      { p: "come", past: "came", pp: "come", meaning: "vindre", emoji: "👋" },
+      { p: "cut", past: "cut", pp: "cut", meaning: "tallar", emoji: "✂️" },
+      { p: "do", past: "did", pp: "done", meaning: "fer", emoji: "✅" },
+      { p: "drink", past: "drank", pp: "drunk", meaning: "beure", emoji: "🥛" },
+      { p: "drive", past: "drove", pp: "driven", meaning: "conduir", emoji: "🚗" },
+      { p: "eat", past: "ate", pp: "eaten", meaning: "menjar", emoji: "🍴" },
+      { p: "fall", past: "fell", pp: "fallen", meaning: "caure", emoji: "🍂" },
+      { p: "feel", past: "felt", pp: "felt", meaning: "sentir", emoji: "❤️" },
+      { p: "find", past: "found", pp: "found", meaning: "trobar", emoji: "🔍" },
+      { p: "fly", past: "flew", pp: "flown", meaning: "volar", emoji: "✈️" },
+      { p: "forget", past: "forgot", pp: "forgotten", meaning: "oblidar", emoji: "❔" },
+      { p: "forgive", past: "forgave", pp: "forgiven", meaning: "perdonar", emoji: "💖" },
+      { p: "get", past: "got", pp: "gotten", meaning: "tindre/obtindre", emoji: "📦" },
+      { p: "give", past: "gave", pp: "given", meaning: "donar", emoji: "🤲" },
+      { p: "go", past: "went", pp: "gone", meaning: "anar", emoji: "🏃" },
+      { p: "grow", past: "grew", pp: "grown", meaning: "créixer", emoji: "🌱" },
+      { p: "have", past: "had", pp: "had", meaning: "tindre", emoji: "💼" },
+      { p: "hear", past: "heard", pp: "heard", meaning: "escoltar", emoji: "👂" },
+      { p: "hide", past: "hid", pp: "hidden", meaning: "amagar-se", emoji: "🙈" },
+      { p: "hurt", past: "hurt", pp: "hurt", meaning: "ferir", emoji: "🩹" },
+      { p: "keep", past: "kept", pp: "kept", meaning: "guardar", emoji: "🔒" },
+      { p: "know",  past: "knew",  pp: "known",  meaning: "saber",                emoji: "🧠" },
+      { p: "leave", past: "left",  pp: "left",   meaning: "deixar (un lloc)",     emoji: "🚪" },
+      { p: "lose",  past: "lost",  pp: "lost",   meaning: "perdre",               emoji: "❌" },
+      { p: "make",  past: "made",  pp: "made",   meaning: "fer",                  emoji: "🛠️" },
+      { p: "meet",  past: "met",   pp: "met",    meaning: "trobar-se (amb algú)", emoji: "🤝" },
+      { p: "pay",   past: "paid",  pp: "paid",   meaning: "pagar",                emoji: "💳" },
+      { p: "read",  past: "read",  pp: "read",   meaning: "llegir",               emoji: "📖" },
+      { p: "ride",  past: "rode",  pp: "ridden", meaning: "muntar (en bici,...)", emoji: "🚲" },
+      { p: "ring",  past: "rang",  pp: "rung",   meaning: "sonar (el telèfon)",   emoji: "📞" },
+      { p: "run",   past: "ran",   pp: "run",    meaning: "córrer",               emoji: "🏃‍♂️" }
+    ];
+
+    const COLORS = [
+      "bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800", 
+      "bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-800", 
+      "bg-orange-50 border-orange-100 dark:bg-orange-900/20 dark:border-orange-800", 
+      "bg-purple-50 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800",
+      "bg-pink-50 border-pink-100 dark:bg-pink-900/20 dark:border-pink-800", 
+      "bg-teal-50 border-teal-100 dark:bg-teal-900/20 dark:border-teal-800", 
+    ];
+
+    // --- UTILIDAD DE AUDIO ---
+    const speakVerbsAndMeaning = (verb, e) => {
+      if (e) e.stopPropagation(); 
+      if (!verb) return;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const enUtterance = new SpeechSynthesisUtterance(`${verb.p}, ${verb.past}, ${verb.pp}`);
+        enUtterance.lang = 'en-GB'; 
+        enUtterance.rate = 0.8;     
+        const esUtterance = new SpeechSynthesisUtterance(verb.meaning);
+        esUtterance.lang = 'es-ES'; 
+        esUtterance.rate = 0.9; 
+        window.speechSynthesis.speak(enUtterance);
+        window.speechSynthesis.speak(esUtterance);
+      }
+    };
+
+    // --- ICONOS ---
+    const Icon = ({ children, size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ width: size, height: size }}>{children}</svg>
+    );
+    const Shuffle = ({ size = 18 }) => (<Icon size={size}><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l14.2-12.8" /><path d="M2 6h1.5c1.3 0 2.5.7 3.2 1.8l2.5 3.5 2.5 3.5c.7 1.1 1.9 1.8 3.2 1.8H22" /></Icon>);
+    const GridIcon = ({ size = 16 }) => (<Icon size={size}><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></Icon>);
+    const PenTool = ({ size = 16 }) => (<Icon size={size}><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></Icon>);
+    const CheckCircle = ({ size = 20 }) => (<Icon size={size} className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></Icon>);
+    const XCircle = ({ size = 20 }) => (<Icon size={size} className="text-red-500"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></Icon>);
+    const Lightbulb = ({ size = 14 }) => (<Icon size={size}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></Icon>);
+    const Speaker = ({ size = 20 }) => (<Icon size={size}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></Icon>);
+    const Moon = ({ size = 20 }) => <Icon size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></Icon>;
+    const Sun = ({ size = 20 }) => <Icon size={size}><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></Icon>;
+    const Phone = ({ size = 18 }) => <Icon size={size}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
+    const Mail = ({ size = 18 }) => <Icon size={size}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></Icon>;
+    const ChevronRight = ({ size = 20 }) => <Icon size={size}><path d="m9 18 6-6-6-6" /></Icon>;
+    const ChevronLeft = ({ size = 20 }) => <Icon size={size}><path d="m15 18-6-6 6-6" /></Icon>;
+    const RefreshCw = ({ size = 16 }) => <Icon size={size}><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></Icon>;
+
+    // --- COMPONENTES ---
+
+    const FlipCard = ({ verb, colorClass, cardNumber }) => {
+      const [flipped, setFlipped] = useState(false);
+      useEffect(() => setFlipped(false), [verb]);
+      if (!verb) return null;
+
+      return (
+        <button onClick={() => setFlipped(!flipped)} className={`relative aspect-square w-full max-w-[260px] select-none preserve-3d transition-transform duration-500 rounded-3xl ${flipped ? "rotate-y-180" : ""} cursor-pointer focus:outline-none focus:ring-4 focus:ring-aulaBlue/30 group`}>
+          {/* FRONTAL */}
+          <div className={`absolute inset-0 ${colorClass} bg-white dark:bg-darkCard rounded-3xl shadow-sm border-2 flex flex-col items-center justify-between p-6 backface-hidden transition duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden`}>
+            
+            {/* NUMERACIÓN (Petición: Pequeño y Amarillo/Ámbar) */}
+            <div className="absolute top-4 left-4 text-xs font-black text-amber-500 bg-amber-50/50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-lg opacity-80">
+              {cardNumber}
+            </div>
+
+            <div className="absolute top-4 right-4 p-2 rounded-full bg-white/50 dark:bg-slate-700/50 hover:bg-aulaBlue hover:text-white dark:hover:bg-aulaBlue transition-colors z-10" onClick={(e) => speakVerbsAndMeaning(verb, e)} title="Escuchar"><Speaker size={18} /></div>
+            
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 w-full">
+                <div className="text-7xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110">{verb.emoji}</div>
+                <div className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{verb.p}</div>
+            </div>
+            <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest opacity-70 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-slate-400 dark:bg-slate-500"></span>Toca para girar</div>
+          </div>
+
+          {/* TRASERA */}
+          <div className={`absolute inset-0 bg-white dark:bg-darkCard rounded-3xl shadow-xl border-2 border-aulaBlue/20 dark:border-aulaBlue/10 p-5 flex flex-col justify-center items-center rotate-y-180 backface-hidden`}>
+            <div className="flex flex-col gap-2 w-full h-full justify-center">
+              <div className="flex-1 flex flex-col justify-center items-center bg-sky-50 dark:bg-sky-900/30 rounded-xl p-1 border border-sky-100 dark:border-sky-800">
+                <span className="text-[10px] uppercase tracking-wider text-sky-500 dark:text-sky-300 font-bold">Past Simple</span>
+                <span className="text-xl font-extrabold text-sky-700 dark:text-sky-100">{verb.past}</span>
+              </div>
+              <div className="flex-1 flex flex-col justify-center items-center bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-1 border border-emerald-100 dark:border-emerald-800">
+                <span className="text-[10px] uppercase tracking-wider text-emerald-500 dark:text-emerald-300 font-bold">Past Participle</span>
+                <span className="text-xl font-extrabold text-emerald-700 dark:text-emerald-100">{verb.pp}</span>
+              </div>
+              <div className="flex-1 flex flex-col justify-center items-center bg-orange-50 dark:bg-orange-900/30 rounded-xl p-1 border-l-4 border-l-aulaOrange mt-1 shadow-sm">
+                <span className="text-[10px] uppercase tracking-wider text-aulaOrange font-bold">Meaning</span>
+                <span className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight px-2 text-center">{verb.meaning}</span>
+              </div>
+            </div>
+          </div>
+        </button>
+      );
+    };
+
+    const PracticeCard = ({ verb, answers, onChange, showResults, cardNumber }) => {
+      const [hints, setHints] = useState({ inf: false, past: false, pp: false });
+      if (!verb) return null;
+
+      const getStatusClass = (fieldKey, correctValue) => {
+        if (!showResults) return "border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:border-aulaBlue focus:ring-aulaBlue/20";
+        const userValue = (answers[fieldKey] || "").trim().toLowerCase();
+        const isMatch = correctValue.toLowerCase().split(', ').some(v => v === userValue) || userValue === correctValue.toLowerCase();
+        if (isMatch) return "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600";
+        return "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600";
+      };
+
+      const isCorrect = (fieldKey, correctValue) => {
+        if (!showResults) return null;
+        const userValue = (answers[fieldKey] || "").trim().toLowerCase();
+        return correctValue.toLowerCase().split(', ').some(v => v === userValue) || userValue === correctValue.toLowerCase();
+      };
+      
+      const handleHint = (key) => setHints(prev => ({ ...prev, [key]: true }));
+
+      return (
+        <div className="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 flex flex-col md:flex-row gap-6 items-center transition-colors relative overflow-hidden">
+          {/* Número en práctica también */}
+          <div className="absolute top-2 left-2 text-[10px] font-black text-amber-500/50">#{cardNumber}</div>
+
+          <div className="flex flex-col items-center justify-center w-full md:w-32 shrink-0 gap-2">
+            <div className="text-5xl cursor-pointer hover:scale-110 transition-transform relative group" onClick={(e) => speakVerbsAndMeaning(verb, e)}>
+              {verb.emoji}
+              <div className="absolute -top-2 -right-2 bg-aulaBlue text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"><Speaker size={12} /></div>
+            </div>
+            <div className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-aulaOrange font-bold text-xs rounded-full border border-orange-100 dark:border-orange-800 text-center w-full">{verb.meaning}</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+            {[ { label: 'Infinitive', key: 'inf', correct: verb.p }, { label: 'Past', key: 'past', correct: verb.past }, { label: 'Participle', key: 'pp', correct: verb.pp } ].map((field) => (
+              <div key={field.key} className="flex flex-col gap-1 relative">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{field.label}</label>
+                  {!hints[field.key] && !showResults && (
+                    <button onClick={() => handleHint(field.key)} className="text-slate-300 hover:text-aulaOrange transition-colors" title="Ver pista"><Lightbulb size={12}/></button>
+                  )}
+                </div>
+                <input type="text" value={answers[`${verb.p}_${field.key}`] || ""} onChange={(e) => onChange(`${verb.p}_${field.key}`, e.target.value)} placeholder={hints[field.key] ? `${field.correct[0]}...` : "write..."} className={`w-full p-2 rounded-xl border-2 outline-none transition-all font-bold text-sm ${getStatusClass(`${verb.p}_${field.key}`, field.correct)}`} autoComplete="off" />
+                {showResults && (isCorrect(`${verb.p}_${field.key}`, field.correct) ? <div className="absolute right-3 top-7"><CheckCircle size={14}/></div> : <div className="absolute right-3 top-7"><XCircle size={14}/></div>)}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [currentLevel, setCurrentLevel] = useState(1);
+      const [mode, setMode] = useState("grid");
+      const [darkMode, setDarkMode] = useState(false);
+      const [practicePage, setPracticePage] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [showResults, setShowResults] = useState(false);
+
+      const verbsPool = useMemo(() => currentLevel === 1 ? VERBS_MEMORIZAR : VERBS_REPASO, [currentLevel]);
+      const [order, setOrder] = useState(() => Array.from({ length: VERBS_MEMORIZAR.length }, (_, i) => i));
+
+      useEffect(() => {
+        setPracticePage(0);
+        setShowResults(false);
+        setAnswers({});
+        setOrder(Array.from({ length: verbsPool.length }, (_, i) => i));
+      }, [currentLevel, verbsPool.length]);
+
+      useEffect(() => {
+        if (darkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      }, [darkMode]);
+
+      const shuffle = () => {
+        const newOrder = [...order];
+        for (let i = newOrder.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+        }
+        setOrder(newOrder);
+      };
+
+      const verbsOrdered = useMemo(() => {
+        return order
+          .filter(i => i < verbsPool.length)
+          .map(i => ({ ...verbsPool[i], originalIndex: i + 1 })) // Guardamos el número original
+          .filter(Boolean);
+      }, [order, verbsPool]);
+      
+      const ITEMS_PER_PAGE = 4;
+      const totalPages = Math.ceil(verbsOrdered.length / ITEMS_PER_PAGE);
+      
+      const currentPracticeVerbs = useMemo(() => {
+          return verbsOrdered.slice(practicePage * ITEMS_PER_PAGE, (practicePage + 1) * ITEMS_PER_PAGE);
+      }, [verbsOrdered, practicePage]);
+
+      const handleAnswerChange = (key, value) => {
+        setAnswers(prev => ({ ...prev, [key]: value }));
+        if (showResults) setShowResults(false);
+      };
+
+      return (
+        <div className="min-h-screen w-full flex flex-col">
+          <header className="bg-white dark:bg-darkCard sticky top-0 z-50 shadow-sm transition-colors duration-300">
+            <div className="h-1.5 w-full brand-gradient"></div>
+            <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="h-16 w-auto flex items-center">
+                  <img src={LOGO_SRC} alt="Aula Kids" className="h-full w-auto object-contain" onError={(e) => { e.target.style.display = 'none'; document.getElementById('fallback-logo').style.display = 'flex'; }} />
+                  <div id="fallback-logo" className="hidden h-full flex flex-col items-center justify-center">
+                    <div className="text-3xl font-black tracking-tighter flex items-center"><span className="text-aulaBlue">Aula</span><span className="text-aulaGreen ml-1">Kids</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <div className="hidden sm:flex mr-2">
+                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-aulaBlue border border-blue-100 dark:border-blue-800 italic">Aprende con confianza, paso a paso</span>
+                   </div>
+                   <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{darkMode ? <Sun size={20} /> : <Moon size={20} />}</button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-grow w-full max-w-6xl mx-auto p-4 md:p-8">
+             <div className="md:hidden text-center mb-6">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 text-aulaBlue border border-blue-100 dark:border-blue-800 italic">Aprende con confianza, paso a paso</span>
+             </div>
+
+            <div className="flex flex-col gap-4 w-full mb-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 bg-white dark:bg-darkCard p-3 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm w-full sm:w-fit mx-auto">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">¿Qué vamos a hacer?</span>
+                <div className="flex gap-2">
+                    <button onClick={() => setCurrentLevel(1)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${currentLevel === 1 ? 'bg-aulaBlue border-aulaBlue text-white shadow-md' : 'bg-transparent border-slate-100 text-slate-500 dark:text-slate-400 hover:border-aulaBlue'}`}>Memorizar (21)</button>
+                    <button onClick={() => setCurrentLevel(2)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${currentLevel === 2 ? 'bg-aulaOrange border-aulaOrange text-white shadow-md' : 'bg-transparent border-slate-100 text-slate-500 dark:text-slate-400 hover:border-aulaOrange'}`}>Repaso (41)</button>
+                </div>
+              </div>
+
+              <div className="flex flex-row items-center justify-between w-full bg-white dark:bg-darkCard p-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm transition-colors">
+                <div className="px-4 py-2 flex items-center gap-2">
+                  {mode === 'grid' ? (
+                    <button onClick={shuffle} className="text-slate-600 dark:text-slate-300 font-bold text-sm flex items-center gap-2 transition-transform active:scale-95"><Shuffle size={18} /><span>Barajar</span></button>
+                  ) : (
+                    <div className="text-slate-400 font-bold text-sm flex items-center gap-2"><PenTool size={18} /><span>Modo Práctica</span></div>
+                  )}
+                </div>
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl transition-colors">
+                  <button onClick={() => setMode("grid")} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${mode === "grid" ? "bg-white dark:bg-slate-700 text-aulaBlue shadow-sm" : "text-slate-500 dark:text-slate-400"}`}><GridIcon size={16} /><span>Fichas</span></button>
+                  <button onClick={() => setMode("practice")} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${mode === "practice" ? "bg-white dark:bg-slate-700 text-aulaGreen shadow-sm" : "text-slate-500 dark:text-slate-400"}`}><PenTool size={16} /><span>Práctica</span></button>
+                </div>
+              </div>
+            </div>
+
+            {mode === "grid" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 place-items-center pb-12 animate-in fade-in duration-500">
+                {verbsOrdered.map((verb, i) => (
+                    <FlipCard key={`${currentLevel}-${verb?.p || i}-${i}`} verb={verb} cardNumber={verb.originalIndex} colorClass={COLORS[i % COLORS.length]} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-20">
+                <div className="flex justify-between items-center px-2">
+                  <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">{currentLevel === 1 ? 'Objetivo: Memorizar' : 'Objetivo: Repaso'} · {practicePage + 1}/{Math.max(1, totalPages)}</h2>
+                  <button onClick={() => { setAnswers({}); setShowResults(false); setPracticePage(0); }} className="text-xs font-bold text-slate-400 hover:text-aulaOrange flex items-center gap-1 transition-colors"><RefreshCw size={12} /> Reiniciar</button>
+                </div>
+                
+                {currentPracticeVerbs.map((verb) => (
+                    <PracticeCard key={`${currentLevel}-${verb?.p}`} verb={verb} cardNumber={verb.originalIndex} answers={answers} onChange={handleAnswerChange} showResults={showResults} />
+                ))}
+                
+                <div className="sticky bottom-4 bg-white/90 dark:bg-darkCard/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4 mt-4 transition-colors">
+                  {practicePage > 0 && (
+                    <button onClick={() => { setPracticePage(prev => prev - 1); setShowResults(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="bg-white dark:bg-slate-800 text-slate-500 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm active:scale-95"><ChevronLeft size={24}/></button>
+                  )}
+                  <button onClick={() => setShowResults(true)} className="flex-1 bg-aulaBlue hover:bg-sky-600 text-white font-bold py-3 rounded-xl shadow-md flex justify-center items-center gap-2 active:scale-[0.98] transition-all"><CheckCircle size={20} />{showResults ? "Verificado" : "Comprobar"}</button>
+                  {practicePage < totalPages - 1 && (
+                    <button onClick={() => { setPracticePage(prev => prev + 1); setShowResults(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="bg-aulaGreen hover:bg-lime-600 text-white font-bold py-3 px-6 rounded-xl shadow-md flex items-center gap-2 active:scale-95 transition-all">Siguiente <ChevronRight size={20} /></button>
+                  )}
+                </div>
+              </div>
+            )}
+          </main>
+
+          <footer className="bg-white dark:bg-darkCard border-t border-slate-100 dark:border-slate-800 mt-auto transition-colors duration-300">
+             <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+                  <div>
+                     <div className="text-sm font-bold text-slate-700 dark:text-slate-300">© Aula Kids</div>
+                     <div className="text-xs text-slate-400 mt-1 italic">Cada niño brilla a su propio ritmo.</div>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                     <a href="https://wa.me/34602026119" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-aulaBlue dark:hover:bg-aulaBlue border border-slate-200 dark:border-slate-700 transition-all duration-300 shadow-sm hover:shadow-md">
+                        <Phone size={18} className="text-aulaBlue dark:text-aulaBlue group-hover:text-white transition-colors" />
+                        <span className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-white transition-colors">602 02 61 19</span>
+                     </a>
+                     <a href="mailto:aulakids513@gmail.com?subject=Consulta%20desde%20Aula%20Kids" className="group flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-aulaGreen dark:hover:bg-aulaGreen border border-slate-200 dark:border-slate-700 transition-all duration-300 shadow-sm hover:shadow-md">
+                        <Mail size={18} className="text-aulaGreen dark:text-aulaGreen group-hover:text-white transition-colors" />
+                        <span className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-white transition-colors">aulakids513@gmail.com</span>
+                     </a>
+                  </div>
+               </div>
+               <div className="w-full h-1 brand-gradient rounded-full opacity-20 dark:opacity-40"></div>
+          </footer>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
